@@ -1,23 +1,23 @@
 defmodule GetValue do
-  def parse([], diffCharacters) do
-    diffCharacters
+  def parse([], sameChars) do
+    sameChars
   end
 
   def parse(entries, _) do
     [head | tail] = entries
 
-    diffCharacters = processEntry(head, tail, [])
+    sameChars = processEntry(head, tail, [])
     charactersForCompare = String.graphemes(head)
 
     returnTail = cond do
-      length(diffCharacters) == length(charactersForCompare) - 1 -> []
-      length(diffCharacters) != length(charactersForCompare) - 1 -> tail
+      length(sameChars) == length(charactersForCompare) - 1 -> []
+      length(sameChars) != length(charactersForCompare) - 1 -> tail
     end
-    parse(returnTail, diffCharacters)
+    parse(returnTail, sameChars)
   end
 
-  defp processEntry(_, [], diffCharacters) do
-    diffCharacters
+  defp processEntry(_, [], sameChars) do
+    sameChars
   end
 
   defp processEntry(entry, allEntries, _) do
@@ -25,27 +25,27 @@ defmodule GetValue do
     [head | tail] = allEntries
     charactersForCompare = String.graphemes(head)
 
-    diffCharacters = processCharacters(charactersForEntry, charactersForCompare, [], 0)
+    sameChars = processCharacters(charactersForEntry, charactersForCompare, [])
 
     returnTail = cond do
-      length(diffCharacters) == length(charactersForEntry) - 1 -> []
-      length(diffCharacters) != length(charactersForEntry) - 1 -> tail
+      length(sameChars) == length(charactersForEntry) - 1 -> []
+      length(sameChars) != length(charactersForEntry) - 1 -> tail
     end
-    processEntry(entry, returnTail, diffCharacters)
+    processEntry(entry, returnTail, sameChars)
   end
 
-  defp processCharacters([], [], diffCharacters, index) do
-    diffCharacters
+  defp processCharacters([], [], sameChars) do
+    sameChars
   end
 
-  defp processCharacters(entry, compare, diffCharacters, index) do
+  defp processCharacters(entry, compare, sameChars) do
     [entryChar | entryRemain] = entry
     [compareChar | compareRemain] = compare
-    diffCharacters = cond do
-      entryChar == compareChar -> diffCharacters ++ [entryChar]
-      entryChar != compareChar -> diffCharacters
+    sameChars = cond do
+      entryChar == compareChar -> sameChars ++ [entryChar]
+      entryChar != compareChar -> sameChars
     end
-    processCharacters(entryRemain, compareRemain, diffCharacters, index + 1)
+    processCharacters(entryRemain, compareRemain, sameChars)
   end
 end
 
@@ -56,3 +56,5 @@ end
 split = String.split(entries, "\n")
 
 IO.puts(GetValue.parse(split, []))
+
+# megsdlpulxvinkatfoyzxcbvq
