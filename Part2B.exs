@@ -1,23 +1,22 @@
 defmodule GetValue do
-  def parse(_, [matchedEntry | []]) do
+  def parse(_, matchedEntry = [_ | _]) do
     matchedEntry
   end
 
-  def parse(entries, _) do
+  def parse(entries, []) do
     [head | tail] = entries
 
-    sameChars = processEntry(head, tail, [])
-    charactersForCompare = String.graphemes(head)
+    matchedEntry = processEntry(head, tail, [])
 
-    matchedEntry = cond do
-      length(sameChars) == length(charactersForCompare) - 1 -> [sameChars]
-      length(sameChars) != length(charactersForCompare) - 1 -> []
-    end
     parse(tail, matchedEntry)
   end
 
-  defp processEntry(_, [], sameChars) do
-    sameChars
+  defp processEntry(_, [], []) do
+    []
+  end
+
+  defp processEntry(_, _, matchedEntry = [_ | _]) do
+    matchedEntry
   end
 
   defp processEntry(entry, allEntries, _) do
@@ -27,11 +26,11 @@ defmodule GetValue do
 
     sameChars = processCharacters(charactersForEntry, charactersForCompare, [])
 
-    returnTail = cond do
-      length(sameChars) == length(charactersForEntry) - 1 -> []
-      length(sameChars) != length(charactersForEntry) - 1 -> tail
+    matchedEntry = cond do
+      length(sameChars) == length(charactersForCompare) - 1 -> sameChars
+      length(sameChars) != length(charactersForCompare) - 1 -> []
     end
-    processEntry(entry, returnTail, sameChars)
+    processEntry(entry, tail, matchedEntry)
   end
 
   defp processCharacters([], [], sameChars) do
@@ -57,5 +56,6 @@ split = String.split(entries, "\n")
 
 IO.puts(GetValue.parse(split, []))
 
+# megsdlpulxvinkatfoyzxcbvq
 # megsdlpulxvinkatfoyzxcbvq
 # megsdlpulxvinkatfoyzxcbvq
