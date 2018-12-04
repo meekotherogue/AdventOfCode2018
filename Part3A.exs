@@ -1,6 +1,6 @@
 defmodule GetValue do
   def parse([], accumulator) do
-    accumulator[:twice] * accumulator[:thrice]
+    accumulator
   end
 
   def parse(entries, accumulator) do
@@ -16,22 +16,15 @@ defmodule GetValue do
     widthInt = String.to_integer(width)
     heightInt = String.to_integer(height)
 
-    right = leftInt + widthInt
+    right = leftInt + widthInt - 1
     columnNums = Enum.to_list(leftInt..right)
 
-    bottom = topInt + heightInt
+    bottom = topInt + heightInt - 1
     rowNums = Enum.to_list(topInt..bottom)
 
-    newAcc = Enum.reduce(columnNums, accumulator, fn (columnNum, colAcc) ->
-      colAcc = Enum.reduce(rowNums, accumulator, fn (rowNum, rowAcc) ->
-        row = rowAcc[rowNum]
-        newRow = cond do
-          row == nil -> %{columnNum => :free}
-          row != nil -> row
-        end
-        rowAcc = put_in rowAcc[rowNum], newRow
-
-        currentValue = newRow[columnNum]
+    newAcc = Enum.reduce(rowNums, accumulator, fn (rowNum, outerAcc) ->
+      newRow = Enum.reduce(columnNums, outerAcc, fn (columnNum, innerAcc) ->
+        currentValue = innerAcc[rowNum][columnNum]
         newValue = cond do
           currentValue == nil -> :taken
           currentValue == :free -> :taken
@@ -39,10 +32,40 @@ defmodule GetValue do
           currentValue == :overlap -> :overlap
         end
 
-        rowAcc = put_in rowAcc[rowNum][columnNum], newValue
+        Map.update(innerAcc, rowNum, %{columnNum => :taken}, fn (currentValueMap) ->
+          Map.put(currentValueMap, columnNum, newValue)
+        end)
       end)
     end)
-    IO.inspect(newAcc[top][left])
+    parse(tail, newAcc)
+  end
+end
+
+defmodule ParseMap do
+  def parse([], accumulator) do
+    accumulator
+  end
+
+  def parse(entries, accumulator) do
+    [row | tail] = entries
+
+    newAcc = parseColumns(Map.values(row), accumulator)
+    parse(tail, newAcc)
+  end
+
+  defp parseColumns([], accumulator) do
+    accumulator
+  end
+
+  defp parseColumns(columns, accumulator) do
+    [column | tail] = columns
+
+    newAcc = cond do
+      column == :overlap -> accumulator + 1
+      column != :overlap -> accumulator
+    end
+
+    parseColumns(tail, newAcc)
   end
 end
 
@@ -52,4 +75,5 @@ end
 
 split = String.split(entries, "\n")
 # IO.inspect(split)
-IO.puts(GetValue.parse(split, Map.new()))
+map = GetValue.parse(split, Map.new())
+IO.puts(ParseMap.parse(Map.values(map), 0))
