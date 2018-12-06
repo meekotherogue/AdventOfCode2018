@@ -42,20 +42,51 @@ end
 
 defmodule GetGuard do
   def parse([], accumulator) do
-    accumulator
+    IO.inspect(accumulator)
+    newGuard = Enum.reduce(Map.values(accumulator), {0, 0}, fn(guard, acc) ->
+      sleepMinutes = guard |> elem(0)
+      previousSleepMinutes = acc |> elem(0)
+      cond do
+        sleepMinutes > previousSleepMinutes -> guard
+        sleepMinutes <= previousSleepMinutes -> acc
+      end
+    end)
+
+    newMinutes = Enum.reduce(elem(newGuard, 1), %{}, fn(minute, acc) ->
+      newMinutes = cond do
+        Map.get(acc, minute) == nil -> 0
+        Map.get(acc, minute) != nil -> Map.get(acc, minute) + 1
+      end
+      Map.put(acc, minute, newMinutes)
+    end)
+
+    # asTuple = Enum.map(newMinutes, fn {k, v} -> {k, v} end)
+
+    # Enum.reduce(asTuple, {0, 0}, fn(minute, acc) ->
+    #   totalMinutes = minute |> elem(1)
+    #   previousTotalMinutes = acc |> elem(1)
+    #   cond do
+    #     totalMinutes > previousTotalMinutes -> minute
+    #     totalMinutes <= previousTotalMinutes -> acc
+    #   end
+    # end)
   end
 
   def parse(entries, accumulator) do
     [head | tail] = entries
     type = head["type"]
 
-    minutesAsleep = parseGuard(head, tail, 0, head, :awake, 0)
+    guardMinutes = parseGuard(head, tail, {0, []}, head, :awake, 0)
+    minutesAsleep = guardMinutes |> elem(0)
+    minuteList = guardMinutes |> elem(1)
 
     newAcc = cond do
       type != :asleep && type != :awake ->
         newMinutes = cond do
-          Map.get(accumulator, type) == nil -> minutesAsleep
-          Map.get(accumulator, type) != nil -> Map.get(accumulator, type) + minutesAsleep
+          Map.get(accumulator, type) == nil ->
+            {minutesAsleep, minuteList}
+          Map.get(accumulator, type) != nil ->
+            {elem(Map.get(accumulator, type), 0) + minutesAsleep, elem(Map.get(accumulator, type), 1) ++ minuteList}
         end
         Map.put(accumulator, type, newMinutes)
       type == :asleep || type == :awake -> accumulator
@@ -80,13 +111,15 @@ defmodule GetGuard do
       newGuard["type"] != :asleep && newGuard["type"] != :awake -> :newGuard
     end
 
-    accumulator = case newState do
-      :awake -> accumulator + (newGuard["date"].minute - asleepMinute)
+    newAcc = case newState do
+      :awake -> {
+        elem(accumulator, 0) + (newGuard["date"].minute - asleepMinute),
+        elem(accumulator, 1) ++ Enum.to_list(newGuard["date"].minute..asleepMinute)}
       :asleep -> accumulator
       :newGuard -> accumulator
     end
 
-    parseGuard(newGuard, tail, accumulator, currentGuard, newState, newGuard["date"].minute)
+    parseGuard(newGuard, tail, newAcc, currentGuard, newState, newGuard["date"].minute)
   end
 end
 
