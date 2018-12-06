@@ -8,8 +8,9 @@ defmodule SortData do
 
     [dateDum | [info | _]] = String.split(head, "] ")
     type = cond do
-      !String.contains?(info, "Guard #") -> :info
-      String.contains?(info, "Guard #") -> Regex.run(~r/\d+/, info)
+      String.contains?(info, "falls") -> :asleep
+      String.contains?(info, "wakes") -> :awake
+      String.contains?(info, "Guard #") -> List.first(Regex.run(~r/\d+/, info))
     end
 
     [_ | [datetime | _]] = String.split(dateDum, "[")
@@ -46,9 +47,46 @@ defmodule GetGuard do
 
   def parse(entries, accumulator) do
     [head | tail] = entries
-    [_ | [allInfo| _]] = String.split(head["info"], "#")
-    [id | _] = String.split(allInfo, " ")
-    IO.inspect(id)
+    type = head["type"]
+
+    minutesAsleep = parseGuard(head, tail, 0, head, :awake, 0)
+
+    newAcc = cond do
+      type != :asleep && type != :awake ->
+        newMinutes = cond do
+          Map.get(accumulator, type) == nil -> minutesAsleep
+          Map.get(accumulator, type) != nil -> Map.get(accumulator, type) + minutesAsleep
+        end
+        Map.put(accumulator, type, newMinutes)
+      type == :asleep || type == :awake -> accumulator
+    end
+
+    parse(tail, newAcc)
+  end
+
+  defp parseGuard(_, _, accumulator, _, :newGuard, _) do
+    accumulator
+  end
+
+  defp parseGuard(_, [], accumulator, _, _, _) do
+    accumulator
+  end
+
+  defp parseGuard(guardEntry, entries, accumulator, currentGuard, currentState, asleepMinute) do
+    [newGuard | tail] = entries
+
+    newState = cond do
+      newGuard["type"] == :asleep || newGuard["type"] == :awake -> newGuard["type"]
+      newGuard["type"] != :asleep && newGuard["type"] != :awake -> :newGuard
+    end
+
+    accumulator = case newState do
+      :awake -> accumulator + (newGuard["date"].minute - asleepMinute)
+      :asleep -> accumulator
+      :newGuard -> accumulator
+    end
+
+    parseGuard(newGuard, tail, accumulator, currentGuard, newState, newGuard["date"].minute)
   end
 end
 
@@ -58,5 +96,5 @@ end
 
 split = String.split(entries, "\n")
 sorted = SortData.parse(split, [])
-IO.inspect(sorted)
-# IO.inspect(GetGuard.parse(sorted, []))
+# IO.inspect(sorted)
+IO.inspect(GetGuard.parse(sorted, Map.new()))
