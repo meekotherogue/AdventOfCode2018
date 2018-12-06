@@ -42,8 +42,8 @@ end
 
 defmodule GetGuard do
   def parse([], accumulator) do
-    IO.inspect(accumulator)
-    newGuard = Enum.reduce(Map.values(accumulator), {0, 0}, fn(guard, acc) ->
+    withId = Enum.map(accumulator, fn {k, v} -> {elem(v, 0), elem(v, 1), k} end)
+    newGuard = Enum.reduce(withId, {0, 0}, fn(guard, acc) ->
       sleepMinutes = guard |> elem(0)
       previousSleepMinutes = acc |> elem(0)
       cond do
@@ -60,16 +60,17 @@ defmodule GetGuard do
       Map.put(acc, minute, newMinutes)
     end)
 
-    # asTuple = Enum.map(newMinutes, fn {k, v} -> {k, v} end)
+    asTuple = Enum.map(newMinutes, fn {k, v} -> {k, v} end)
 
-    # Enum.reduce(asTuple, {0, 0}, fn(minute, acc) ->
-    #   totalMinutes = minute |> elem(1)
-    #   previousTotalMinutes = acc |> elem(1)
-    #   cond do
-    #     totalMinutes > previousTotalMinutes -> minute
-    #     totalMinutes <= previousTotalMinutes -> acc
-    #   end
-    # end)
+    largestMinute = Enum.reduce(asTuple, {0, 0}, fn(minute, acc) ->
+      totalMinutes = minute |> elem(1)
+      previousTotalMinutes = acc |> elem(1)
+      cond do
+        totalMinutes > previousTotalMinutes -> minute
+        totalMinutes <= previousTotalMinutes -> acc
+      end
+    end)
+    elem(largestMinute, 0) * String.to_integer(elem(newGuard, 2))
   end
 
   def parse(entries, accumulator) do
